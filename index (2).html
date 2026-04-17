@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中性化深さ測定ツール</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2ecc71">
+
+<style>
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial;
+background: #eef2f5;
+margin: 0;
+padding: 15px;
+}
+
+.container {
+max-width: 500px;
+margin: auto;
+background: white;
+padding: 20px;
+border-radius: 12px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+h1 {
+text-align: center;
+font-size: 20px;
+margin-bottom: 15px;
+}
+
+label {
+display: block;
+margin-top: 10px;
+font-size: 14px;
+color: #555;
+}
+
+input {
+width: 100%;
+padding: 12px;
+font-size: 18px;
+border: 1px solid #ccc;
+border-radius: 8px;
+box-sizing: border-box;
+}
+
+button {
+width: 100%;
+padding: 14px;
+font-size: 18px;
+background: #2ecc71;
+color: white;
+border: none;
+border-radius: 10px;
+margin-top: 15px;
+}
+
+.result {
+margin-top: 20px;
+padding: 15px;
+background: #f9f9f9;
+border-radius: 10px;
+font-size: 16px;
+}
+
+.bad { color: #e74c3c; }
+.good { color: #27ae60; }
+
+.title-small {
+font-weight: bold;
+margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>中性化深さ測定ツール</h1>
+
+<label>測定値1 (mm)</label>
+<input type="number" step="0.1" id="v1">
+
+<label>測定値2 (mm)</label>
+<input type="number" step="0.1" id="v2">
+
+<label>測定値3 (mm)</label>
+<input type="number" step="0.1" id="v3">
+
+<label>測定値4 (任意)</label>
+<input type="number" step="0.1" id="v4">
+
+<label>測定値5 (任意)</label>
+<input type="number" step="0.1" id="v5">
+
+<button onclick="calculate()">計算する</button>
+
+<div class="result" id="output"></div>
+
+</div>
+
+<script>
+function calculate() {
+const v1 = document.getElementById("v1").value;
+const v2 = document.getElementById("v2").value;
+const v3 = document.getElementById("v3").value;
+const v4 = document.getElementById("v4").value;
+const v5 = document.getElementById("v5").value;
+const output = document.getElementById("output");
+
+let values = [v1, v2, v3, v4, v5]
+.map(v => Number(v))
+.filter(v => !isNaN(v) && v > 0);
+
+if (values.length < 3) {
+output.innerHTML = "※最低3点の測定値を入力してください";
+return;
+}
+
+let avg = values.reduce((a, b) => a + b, 0) / values.length;
+
+// ±30% range check
+let range = avg * 0.3;
+let lower = avg - range;
+let upper = avg + range;
+
+let html = "";
+html += `<div class="title-small">平均値</div>${avg.toFixed(2)} mm`;
+html += `<div class="title-small">許容範囲</div>${lower.toFixed(2)} ～ ${upper.toFixed(2)} mm<br><br>`;
+
+let valid = true;
+
+values.forEach((v, i) => {
+if (v < lower || v > upper) {
+html += `<div class="bad">測定値${i+1}: ${v} mm（範囲外）</div>`;
+valid = false;
+} else {
+html += `<div class="good">測定値${i+1}: ${v} mm（OK）</div>`;
+}
+});
+
+html += "<br>";
+
+if (!valid) {
+html += `<div class="bad"><b>判定：再測定が必要</b></div>`;
+} else {
+let upperFinal = avg * 1.3;
+let lowerFinal = avg * 0.7;
+
+html += `<div class="good"><b>中性化深さ（評価結果）</b></div>`;
+html += `上 (×1.3)：${upperFinal.toFixed(2)} mm<br>`;
+html += `下 (×0.7)：${lowerFinal.toFixed(2)} mm`;
+}
+
+output.innerHTML = html;
+}
+
+// PWA service worker
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
